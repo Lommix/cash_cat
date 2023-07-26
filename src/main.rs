@@ -1,8 +1,7 @@
 #![allow(unused)]
 use clap::Parser;
-use store::Store;
+use models::prelude::*;
 
-mod store;
 mod models;
 
 #[derive(Parser)]
@@ -38,15 +37,16 @@ struct PrintArgs {
 // -------------------------------------
 fn main() {
     let cli = Cli::parse();
+    let con = Store::open_connection();
     match cli {
-        Cli::Track(args) => {
-            dbg!(args);
-        }
+        Cli::Track(args) => {}
         Cli::Print(args) => {
-            dbg!(args);
+            let c = Customer::find_by_name(&con, &args.customer).unwrap();
+            dbg!(c);
         }
         Cli::Init => {
-            Store::up();
+            Store::down(&con);
+            Store::up(&con);
         }
     }
 }
