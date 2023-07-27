@@ -8,6 +8,17 @@ pub struct TimeEntry {
     pub minutes: i64,
 }
 
+impl TimeEntry {
+    pub fn new(customer_id: i64, ticket_id: i64, minutes: i64) -> Self {
+        Self {
+            id: None,
+            customer_id,
+            ticket_id,
+            minutes,
+        }
+    }
+}
+
 impl super::Insertable for TimeEntry {
     fn insert(&self, con: &rusqlite::Connection) -> anyhow::Result<Self> {
         let mut stmt =

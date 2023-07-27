@@ -26,7 +26,7 @@ where
 
 pub trait FindableByName
 where
-    Self: Sized,
+    Self: Sized
 {
     fn find_by_name(con: &rusqlite::Connection, name: &str) -> Result<Self>;
 }
@@ -61,7 +61,7 @@ impl Store {
                 id INTEGER PRIMARY KEY,
                 customer_id INTEGER,
                 ticket_id INTEGER,
-                duration INTEGER,
+                minutes INTEGER,
                 description TEXT);",
             (),
         )?;
