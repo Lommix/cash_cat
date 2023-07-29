@@ -1,4 +1,5 @@
 #![allow(unused)]
+use chrono::prelude::*;
 use clap::Parser;
 use models::prelude::*;
 use std::io::{self, Write};
@@ -40,7 +41,7 @@ struct ListArgs {
     #[arg(short, long)]
     customer: String,
     #[arg(short, long)]
-    months: u32,
+    months: u64,
 }
 // -------------------------------------
 fn main() {
@@ -61,19 +62,16 @@ fn main() {
 }
 
 fn list(con: &rusqlite::Connection, args: ListArgs) {
-    let min_timestamp = chrono::offset::Local::now()
-        .naive_local()
-        .checked_sub_months(chrono::Months::new(args.months))
-        .unwrap()
-        .timestamp();
-
+    let (min, max) = get_month_range(args.months);
     let customer = Customer::find_by_name(&con, &args.customer).expect("Customer not found");
 
     let mut stmt = con
-        .prepare("SELECT * FROM entries WHERE customer_id = ? AND created_at < ?")
+        .prepare(
+            "SELECT * FROM entries WHERE customer_id = ? AND created_at >= ? AND created_at <= ?",
+        )
         .unwrap();
     let tickets = stmt
-        .query_map([customer.id.unwrap(), min_timestamp], |row| {
+        .query_map([customer.id.unwrap(), min, max], |row| {
             Ok(TimeEntry {
                 id: Some(row.get(0)?),
                 customer_id: row.get(1)?,
@@ -84,9 +82,8 @@ fn list(con: &rusqlite::Connection, args: ListArgs) {
         })
         .unwrap();
 
-    println!("found these:");
     for ticket in tickets {
-        println!("{:?}", ticket);
+        println!("{:?}", ticket.unwrap());
     }
 }
 
@@ -122,4 +119,24 @@ fn track(con: &rusqlite::Connection, args: TrackArgs) {
 
     let track = TimeEntry::new(customer.id.unwrap(), ticket.id.unwrap(), args.duration);
     track.insert(&con).expect("TimeEntry not insertable");
+}
+
+fn get_month_range(month_offset: u64) -> (i64, i64) {
+    let now = chrono::offset::Local::now()
+        .naive_local()
+        .checked_sub_months(chrono::Months::new(month_offset as u32))
+        .unwrap();
+
+    let month = now.month();
+    let year = now.year();
+
+    let month_start = NaiveDate::from_ymd(year, month, 1)
+        .and_time(NaiveTime::default())
+        .timestamp();
+
+    let month_end = NaiveDate::from_ymd(year, month + 1, 1)
+        .and_time(NaiveTime::default())
+        .timestamp();
+
+    (month_start, month_end)
 }
