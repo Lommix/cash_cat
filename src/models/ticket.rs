@@ -23,7 +23,7 @@ impl super::FindableById for Ticket {
 
 impl super::FindableByName for Ticket {
     fn find_by_name(con: &rusqlite::Connection, name: &str) -> anyhow::Result<Self> {
-        let mut stmt = con.prepare("Select * from tickets where name = ?")?;
+        let mut stmt = con.prepare("Select * from tickets where `name` = ?")?;
         let ticket = stmt.query_row([name], |row| {
             Ok(Ticket {
                 id: Some(row.get(0)?),
