@@ -43,6 +43,7 @@ struct ListArgs {
     #[arg(short, long)]
     months: u64,
 }
+
 // -------------------------------------
 fn main() {
     let cli = Cli::parse();
@@ -61,6 +62,7 @@ fn main() {
     }
 }
 
+// -------------------------------------
 fn list(con: &rusqlite::Connection, args: ListArgs) {
     let (min, max) = get_month_range(args.months);
     let customer = Customer::find_by_name(&con, &args.customer).expect("Customer not found");
@@ -83,7 +85,7 @@ fn list(con: &rusqlite::Connection, args: ListArgs) {
         .unwrap();
 
     for ticket in tickets {
-        println!("{:?}", ticket.unwrap());
+        println!("{}", ticket.unwrap());
     }
 }
 
@@ -121,6 +123,7 @@ fn track(con: &rusqlite::Connection, args: TrackArgs) {
     track.insert(&con).expect("TimeEntry not insertable");
 }
 
+// -------------------------------------
 fn get_month_range(month_offset: u64) -> (i64, i64) {
     let now = chrono::offset::Local::now()
         .naive_local()
