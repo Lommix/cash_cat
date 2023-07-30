@@ -25,8 +25,14 @@ impl TimeEntry {
 
 impl std::fmt::Display for TimeEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let date = chrono::NaiveDateTime::from_timestamp_opt(self.created_at, 0).unwrap().date();
-        write!(f, "{:?}  ticket:{:?}  time:{:?}", date, self.ticket_id, self.minutes)
+        let date = chrono::NaiveDateTime::from_timestamp_opt(self.created_at, 0)
+            .unwrap()
+            .date();
+        write!(
+            f,
+            "ID[{}] >> {:?}  ticket:{:?}  time:{:?}",
+            self.id.unwrap(), date, self.ticket_id, self.minutes
+        )
     }
 }
 

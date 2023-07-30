@@ -10,11 +10,12 @@ mod models;
 #[command(name = "cash_cat")]
 #[command(author = "Lorenz Mielke")]
 #[command(version = "1.0")]
-#[command(about = "A simple cli time tracker", long_about = None)]
+#[command(about = "A simple cli time tracker using sqlite", long_about = None)]
 enum Cli {
     Track(TrackArgs),
     Export(ExportArgs),
     List(ListArgs),
+    Delete(DeleteArgs),
     Init,
 }
 
@@ -29,11 +30,13 @@ struct TrackArgs {
 }
 
 #[derive(clap::Args, Debug)]
-struct ExportArgs {
+pub struct ExportArgs {
     #[arg(short, long)]
     customer: String,
     #[arg(short, long)]
-    month: Option<String>,
+    months: u64,
+    #[arg(short, long)]
+    destination: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -44,6 +47,27 @@ struct ListArgs {
     months: u64,
 }
 
+#[derive(clap::Args, Debug)]
+struct DeleteArgs {
+    #[arg(short, long)]
+    id: String,
+}
+
+// -------------------------------------
+#[derive(serde::Serialize, Debug)]
+pub struct ExportTemplate {
+    pub customer: String,
+    pub month: Option<String>,
+    pub positions: Vec<Position>,
+}
+
+#[derive(serde::Serialize, Debug)]
+pub struct Position {
+    pub name: String,
+    pub description: String,
+    pub duration: u64,
+}
+
 // -------------------------------------
 fn main() {
     let cli = Cli::parse();
@@ -51,20 +75,51 @@ fn main() {
     match cli {
         Cli::Track(args) => track(&con, args),
         Cli::List(args) => list(&con, args),
-        Cli::Export(args) => {
-            let c = Customer::find_by_name(&con, &args.customer).unwrap();
-            dbg!(c);
-        }
+        Cli::Export(args) => export(&con, args),
         Cli::Init => {
             Store::down(&con);
             Store::up(&con);
         }
+        Cli::Delete(args) => delete(&con, args),
     }
+}
+
+fn delete(con: &rusqlite::Connection, args: DeleteArgs) {
+    con.execute("DELETE FROM entries WHERE id = ?", [args.id])
+        .expect("Failed to delete");
+}
+
+fn export(con: &rusqlite::Connection, args: ExportArgs) {
+    let customer = Customer::find_by_name(&con, &args.customer).expect("Customer not found");
+    let (min, max) = month_range_from_now(args.months);
+    let sql = "SELECT t.name, t.description, SUM(e.minutes)
+               FROM tickets as t JOIN entries as e ON t.id = e.ticket_id
+               WHERE t.customer_id = ? AND e.created_at >= ? AND e.created_at <= ?;";
+    let mut stmt = con.prepare(sql).unwrap();
+    let entries = stmt
+        .query_map([customer.id.unwrap(), min, max], |row| {
+            Ok(Position {
+                name: row.get(0)?,
+                description: row.get(1)?,
+                duration: row.get(2)?,
+            })
+        })
+        .unwrap();
+
+    let template = ExportTemplate {
+        customer: args.customer,
+        month: None,
+        positions: entries.map(|t| t.unwrap()).collect(),
+    };
+
+    let json = serde_json::to_string(&template).unwrap();
+    std::fs::write(args.destination.unwrap_or("./export.json".into()), json)
+        .expect("Failed to write");
 }
 
 // -------------------------------------
 fn list(con: &rusqlite::Connection, args: ListArgs) {
-    let (min, max) = get_month_range(args.months);
+    let (min, max) = month_range_from_now(args.months);
     let customer = Customer::find_by_name(&con, &args.customer).expect("Customer not found");
 
     let mut stmt = con
@@ -75,7 +130,7 @@ fn list(con: &rusqlite::Connection, args: ListArgs) {
     let tickets = stmt
         .query_map([customer.id.unwrap(), min, max], |row| {
             Ok(TimeEntry {
-                id: Some(row.get(0)?),
+                id: row.get(0)?,
                 customer_id: row.get(1)?,
                 ticket_id: row.get(2)?,
                 minutes: row.get(3)?,
@@ -124,10 +179,10 @@ fn track(con: &rusqlite::Connection, args: TrackArgs) {
 }
 
 // -------------------------------------
-fn get_month_range(month_offset: u64) -> (i64, i64) {
+fn month_range_from_now(offset: u64) -> (i64, i64) {
     let now = chrono::offset::Local::now()
         .naive_local()
-        .checked_sub_months(chrono::Months::new(month_offset as u32))
+        .checked_sub_months(chrono::Months::new(offset as u32))
         .unwrap();
 
     let month = now.month();
