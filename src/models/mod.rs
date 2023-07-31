@@ -75,9 +75,22 @@ impl Store {
         Ok(())
     }
 
+    pub fn copy_database(dst: std::path::PathBuf) -> anyhow::Result<()> {
+        let base = directories::BaseDirs::new().expect("unable to get home dir");
+        let db_path = base.home_dir().join(".cash_cat/cash_cat.db");
+
+        if !db_path.exists(){
+            anyhow::bail!("Database not found. Have you even created one yet?")
+        }
+
+        std::fs::copy(db_path, dst)?;
+
+        Ok(())
+    }
+
     pub fn open_connection() -> rusqlite::Connection {
-        let home_dir = std::env::home_dir().expect("Could not get home directory.");
-        let app_dir = home_dir.join(".cash_cat");
+        let base = directories::BaseDirs::new().expect("unable to get home dir");
+        let app_dir = base.home_dir().join(".cash_cat");
 
         if !app_dir.exists() {
             std::fs::create_dir(&app_dir)

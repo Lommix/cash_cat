@@ -17,6 +17,7 @@ enum Cli {
     List(ListArgs),
     Delete(DeleteArgs),
     Init,
+    Backup(BackupArgs),
 }
 
 #[derive(clap::Args, Debug)]
@@ -37,6 +38,12 @@ pub struct ExportArgs {
     months: u64,
     #[arg(short, long)]
     destination: Option<String>,
+}
+
+#[derive(clap::Args, Debug)]
+pub struct BackupArgs {
+    #[arg(short, long)]
+    destination: String,
 }
 
 #[derive(clap::Args, Debug)]
@@ -81,6 +88,9 @@ fn main() {
             Store::up(&con);
         }
         Cli::Delete(args) => delete(&con, args),
+        Cli::Backup(args) => {
+            Store::copy_database(args.destination.into()).expect("Failed to create backup")
+        }
     }
 }
 
