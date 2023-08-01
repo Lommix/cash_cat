@@ -17,16 +17,16 @@ Initialize <b>or reset</b> your cash cat database.
 ---
 
 ```
-cashcat track -c CUSTOMER -t TICKET -d DURATION
+cashcat track CUSTOMER TICKET DURATION
 ```
 
 tracks a time entry for the given customer, ticket and duration in minutes.
-If customer or ticket does not exists. It will be created.
+If customer or ticket does not exists. It will be created. They are just represented by a string.
 
 ---
 
 ```
-cashcat list -c CUSTOMER -m MONTHOFFSET
+cashcat list CUSTOMER MONTHOFFSET
 ```
 
 prints all entries for the given customer for current month - offset.
@@ -34,7 +34,7 @@ prints all entries for the given customer for current month - offset.
 ---
 
 ```
-cashcat export -c CUSTOMER -m MONTHOFFSET -d DESTINATION
+cashcat export CUSTOMER MONTHOFFSET DESTINATION
 ```
 
 exports all entries for the given customer for current month - offset to the
@@ -43,7 +43,7 @@ given destination as json.
 ---
 
 ```
-cashcat delete -i ID
+cashcat delete ID
 ```
 
 deletes the given time entry by ID. Use the List Command to see all entries with ID.
@@ -51,7 +51,7 @@ deletes the given time entry by ID. Use the List Command to see all entries with
 ---
 
 ```
-cashcat backup -d DESTINATION
+cashcat backup DESTINATION
 ```
 
 copies the sqlite databse to the given destination

@@ -22,41 +22,31 @@ enum Cli {
 
 #[derive(clap::Args, Debug)]
 struct TrackArgs {
-    #[arg(short, long)]
     customer: String,
-    #[arg(short, long)]
     ticket: String,
-    #[arg(short, long)]
     duration: u64,
 }
 
 #[derive(clap::Args, Debug)]
 pub struct ExportArgs {
-    #[arg(short, long)]
     customer: String,
-    #[arg(short, long)]
     months: u64,
-    #[arg(short, long)]
     destination: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
 pub struct BackupArgs {
-    #[arg(short, long)]
     destination: String,
 }
 
 #[derive(clap::Args, Debug)]
 struct ListArgs {
-    #[arg(short, long)]
     customer: String,
-    #[arg(short, long)]
     months: u64,
 }
 
 #[derive(clap::Args, Debug)]
 struct DeleteArgs {
-    #[arg(short, long)]
     id: String,
 }
 
@@ -147,7 +137,13 @@ fn list(con: &rusqlite::Connection, args: ListArgs) {
                 created_at: row.get(4)?,
             })
         })
-        .unwrap();
+        .unwrap()
+        .collect::<Vec<_>>();
+
+    if tickets.is_empty() {
+        println!("No entries found");
+        return;
+    }
 
     for ticket in tickets {
         println!("{}", ticket.unwrap());
