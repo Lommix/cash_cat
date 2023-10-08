@@ -94,7 +94,8 @@ fn export(con: &rusqlite::Connection, args: ExportArgs) {
     let (min, max) = month_range_from_now(args.months);
     let sql = "SELECT t.name, t.description, SUM(e.minutes)
                FROM tickets as t JOIN entries as e ON t.id = e.ticket_id
-               WHERE t.customer_id = ? AND e.created_at >= ? AND e.created_at <= ?;";
+               WHERE t.customer_id = ? AND e.created_at >= ? AND e.created_at <= ?
+               GROUP BY t.name;";
     let mut stmt = con.prepare(sql).unwrap();
     let entries = stmt
         .query_map([customer.id.unwrap(), min, max], |row| {
@@ -106,9 +107,10 @@ fn export(con: &rusqlite::Connection, args: ExportArgs) {
         })
         .unwrap();
 
+    let month = chrono::NaiveDateTime::from_timestamp(min, 0).format("%m").to_string();
     let template = ExportTemplate {
         customer: args.customer,
-        month: None,
+        month: Some(month),
         positions: entries.map(|t| t.unwrap()).collect(),
     };
 
